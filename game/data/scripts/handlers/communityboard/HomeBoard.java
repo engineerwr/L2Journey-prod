@@ -82,11 +82,13 @@ public class HomeBoard implements IParseBoardHandler
 	private static final String COUNT_FAVORITES = "SELECT COUNT(*) AS favorites FROM `bbs_favorites` WHERE `playerId`=?";
 	private final handlers.communityboard.TopBoard topBoard = new handlers.communityboard.TopBoard();
 	private static final String NAVIGATION_PATH = "data/html/CommunityBoard/navigation.html";
+	private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(SchemeBufferBoard.class.getName());
 
 	private static final String[] COMMANDS =
 	{
 		"_bbshome",
 		"_bbstop",
+		"_bbspreset"
 	};
 
 	private static final String[] CUSTOM_COMMANDS =
@@ -314,6 +316,7 @@ public class HomeBoard implements IParseBoardHandler
 		else if (command.startsWith("_bbsbuff"))
 		{
 			final String fullBypass = command.replace("_bbsbuff;", "");
+
 			final String[] buypassOptions = fullBypass.split(";");
 			final int buffCount = buypassOptions.length - 1;
 			final String page = buypassOptions[buffCount];
@@ -352,6 +355,50 @@ public class HomeBoard implements IParseBoardHandler
 			}
 
 			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/Custom/" + page + ".html");
+		}
+		else if (command.startsWith("_bbspreset")) 
+		{
+			final String fullBypass = command.replace("_bbspreset;", "");
+
+			String buffPreset = BuffPresets.getBuffPreset(fullBypass);
+			final String[] buypassOptions = buffPreset.split(";");
+			final int buffCount = buypassOptions.length - 1;
+
+			if (player.getInventory().getInventoryItemCount(Config.COMMUNITYBOARD_CURRENCY, -1) < ((long) Config.COMMUNITYBOARD_BUFF_PRICE * buffCount))
+			{
+				player.sendMessage("Not enough currency!");
+			}
+			else
+			{
+				player.destroyItemByItemId(ItemProcessType.FEE, Config.COMMUNITYBOARD_CURRENCY, (long) Config.COMMUNITYBOARD_BUFF_PRICE * buffCount, player, true);
+
+				final Summon pet = player.getSummon();
+				final List<Creature> targets = new ArrayList<>(4);
+				targets.add(player);
+
+				if (pet != null)
+				{
+					targets.add(pet);
+				}
+
+				for (int i = 0; i < buffCount; i++)
+				{
+					final Skill skill = SkillData.getInstance().getSkill(Integer.parseInt(buypassOptions[i].split(",")[0]), Integer.parseInt(buypassOptions[i].split(",")[1]));
+
+					if (!Config.COMMUNITY_AVAILABLE_BUFFS.contains(skill.getId()))
+					{
+						continue;
+					}
+
+					for (Creature target : targets)
+					{
+						skill.applyEffects(player, target);
+					}
+				}
+			}
+
+			returnHtml = HtmCache.getInstance().getHtm(player, "data/html/CommunityBoard/Custom/buffer/main.html");
+			returnHtml = returnHtml.replace("%schemes%", SchemeBufferBoard.generateSchemesHtml(player));
 		}
 		else if (command.startsWith("_bbsheal"))
 		{
