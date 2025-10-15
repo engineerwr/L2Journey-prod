@@ -327,8 +327,6 @@ public class SchemeBufferBoard implements IParseBoardHandler
 	 */
 	@Override
 	public boolean parseCommunityBoardCommand(String command, Player player) {
-		LOGGER.info("SchemeBufferBoard.parseCommunityBoardCommand called with command: " + command);
-
 		// Replace space with semicolon for createscheme command
 		final String processedCommand = command.replace("_scheme_createscheme ", "_scheme_createscheme;");
 
